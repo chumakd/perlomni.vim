@@ -896,11 +896,11 @@ endf
 fun! s:scanFunctionFromList(lines)
     let buffile = tempname()
     cal writefile(a:lines,buffile)
-    return split(s:system(s:vimbin.'grep-pattern.pl', buffile, '^\s*(?:sub|has)\s+(\w+)', '|', 'sort', '|', 'uniq'),"\n")
+    return split(s:system(s:vimbin.'grep-function.pl', buffile, '^\s*(?:method|sub|has)\s+(\w+)', '|', 'sort', '|', 'uniq'),"\n")
 endf
 
 fun! s:scanFunctionFromSingleClassFile(file)
-    return split(s:system(s:vimbin.'grep-pattern.pl', a:file, '^\s*(?:sub|has)\s+(\w+)', '|', 'sort', '|', 'uniq'),"\n")
+    return split(s:system(s:vimbin.'grep-function.pl', a:file, '^\s*(?:method|sub|has)\s+(\w+)', '|', 'sort', '|', 'uniq'),"\n")
 endf
 
 fun! s:scanFunctionFromClass(class)
@@ -1162,6 +1162,13 @@ cal s:rule({
 
 
 " function completion
+
+"cal s:rule({
+"    \'head': '->$',
+"    \'context': '\w+(.{-})',
+"    \'backward': '\<\w\+$' ,
+"    \'comp': function('s:CompParameters') })
+
 cal s:rule({
     \'context': '\(->\|\$\)\@<!$',
     \'backward': '\<\w\+$' ,
