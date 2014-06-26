@@ -1054,15 +1054,15 @@ cal s:rule( {
 " Moose Completion Rules {{{
 cal s:rule({
     \'only':1,
-    \'head': '^has\s\+\w\+' ,
-    \'context': '\s\+is\s*=>\s*$'  ,
+    \'head': '^\s*has\s\+[''"]\?\w\+[''"]\?' ,
+    \'context': '\s\+[''"]\?is[''"]\?\s*=>\s*$'  ,
     \'backward': '[''"]\?\w*$' ,
     \'comp': function('s:CompMooseIs') } )
 
 cal s:rule({
     \'only':1,
-    \'head': '^has\s\+\w\+' ,
-    \'context': '\s\+\(isa\|does\)\s*=>\s*$' ,
+    \'head': '^\s*has\s\+[''"]\?\w\+[''"]\?' ,
+    \'context': '\s\+[''"]\?\(isa\|does\)[''"]\?\s*=>\s*$' ,
     \'backward': '[''"]\?\S*$' ,
     \'comp': function('s:CompMooseIsa') } )
 cal s:rule({ 'only':1, 'head': '^has\s\+\w\+' ,
@@ -1072,14 +1072,14 @@ cal s:rule({ 'only':1, 'head': '^has\s\+\w\+' ,
 
 cal s:rule({
     \'only':1,
-    \'head': '^has\s\+\w\+' ,
+    \'head': '^\s*has\s\+[''"]\?\w\+[''"]\?' ,
     \'context': '^\s*$' ,
     \'backward': '\w*$',
     \'comp': function('s:CompMooseAttribute') } )
 
 cal s:rule({
     \'only':1,
-    \'head': '^with\s\+',
+    \'head': '^\s*with\s\+',
     \'context': '^\s*-$',
     \'backward': '\w\+$',
     \'comp': function('s:CompMooseRoleAttr') } )
