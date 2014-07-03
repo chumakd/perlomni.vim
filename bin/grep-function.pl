@@ -7,9 +7,15 @@ my @lines = <FH>;
 my @vars = ();
 my $sub;
 my @params;
+my $new;
 for my $line ( @lines ) {
     if (  $line =~ /$pattern/o ) {
-        $sub = $1;
+        my $match = $1;
+        if ($line =~ /\bhas\b/ ) {
+            push @new, $match;
+        }
+        push @vars, $sub if $sub;
+        $sub = $match;
     }
     if ($line =~ /\$p_(\w+).+?(rq|op)\s*['"]\w+['"](?:\s*,\s*['"](\w+)['"])?(?:\s*,\s*(['"]?[^'";#]+['"]?))?(?:.*?#\s*(.+))/) {
         my $definition = '';
@@ -34,6 +40,8 @@ for my $line ( @lines ) {
         @types = ();
     }
 }
+push @vars, $sub if $sub;
+push @vars, 'new(|'.(join '=>,|', @new ).'=>,|);Please_Redisplay' if @new;
 close FH;
 print $_  . "\n" for @vars;
 

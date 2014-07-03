@@ -896,11 +896,11 @@ endf
 fun! s:scanFunctionFromList(lines)
     let buffile = tempname()
     cal writefile(a:lines,buffile)
-    return split(s:system(s:vimbin.'grep-function.pl', buffile, '^\s*(?:method|sub|has)\s+(\w+)', '|', 'sort', '|', 'uniq'),"\n")
+    return split(s:system(s:vimbin.'grep-function.pl', buffile, '^\s*(?:method|sub|has)\s+[''"]?(\w+)[''"]?', '|', 'sort', '|', 'uniq'),"\n")
 endf
 
 fun! s:scanFunctionFromSingleClassFile(file)
-    return split(s:system(s:vimbin.'grep-function.pl', a:file, '^\s*(?:method|sub|has)\s+(\w+)', '|', 'sort', '|', 'uniq'),"\n")
+    return split(s:system(s:vimbin.'grep-function.pl', a:file, '^\s*(?:method|sub|has)\s+[''"]?(\w+)[''"]?', '|', 'sort', '|', 'uniq'),"\n")
 endf
 
 fun! s:scanFunctionFromClass(class)
@@ -1123,7 +1123,7 @@ cal s:rule({
     \'comp': function('s:CompClassName') } )
 
 cal s:rule({
-    \'context': '^\s*\(sub\|method\)\s\+'              ,
+    \'context': '^\s*\(sub\|method|has\)\s\+'              ,
     \'backward': '\<\w\+$' ,
     \'only':1 ,
     \'comp': function('s:CompCurrentBaseFunction') })
