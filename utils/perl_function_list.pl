@@ -1,26 +1,36 @@
 #!/usr/bin/env perl
-# get perl function list
-my $pathes = join ' ',@INC;
-my $pod = qx( find $pathes -name perlfunc.pod);
-chomp $pod;
+use strict;
+use feature ':5.10';
+use warnings;
 
-open(FH, '-|', qq|podselect -section 'DESCRIPTION/Alphabetical Listing of Perl Functions' $pod| );
-my @func ;
-my $inline = 0;
-while( <FH> )
-{
-    if( /^=over/ ) {
+
+# getting perlfunc.pod absolute path
+my $filepath;
+for my $path ( @INC ) {
+    $filepath = "$path/pod/perlfunc.pod" if -e "$path/pod/perlfunc.pod";
+}
+
+
+my ( $functions, $inlist, $file ) = ( [], 0, [] );
+
+# open file and get content
+open my $fh, '-|', "podselect -section 'DESCRIPTION/*' $filepath";
+@$file = map { chomp; $_ } <$fh>;
+close $fh;
+
+foreach (@$file){
+    if ( /^=over/ ) {
         $inlist++;
     }
-    elsif( /^=back/ ) {
+    elsif ( /^=back/ ) {
         $inlist--;
     }
-    elsif( /^=item \w+/ ) {
+    elsif ( /^=item \w+/ ) {
         s/^=item //;
-        chomp;
-        push @func,$_ if $inlist == 1;
+        push @$functions, $_ if $inlist == 1;
     }
 }
-close FH;
 
-print $_ , "\n" for @func;
+# output perl functions
+say $_ for @$functions;
+

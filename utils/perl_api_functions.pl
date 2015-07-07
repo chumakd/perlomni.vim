@@ -29,7 +29,7 @@ foreach (@$file){
         $inlist--;
     }
     elsif ( /^=item \w+/ ) {
-        s/^=item //; chomp;
+        s/^=item //;
         push @$functions, $_ if $inlist == 1;
     }
 }
