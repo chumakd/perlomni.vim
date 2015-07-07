@@ -8,6 +8,10 @@ has url => (
     reader => 
 );
 
+has name => (
+    isa => 'Str', is => 'rw'
+);
+
 # role
 with 'Restartable' => {
     -alias => {
