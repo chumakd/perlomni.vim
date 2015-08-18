@@ -767,6 +767,7 @@ endf
 
 " util function for building completion hashlist
 fun! s:toCompHashList(list,menu)
+    return a:list
   return map( a:list , '{ "word": v:val , "menu": "'. a:menu .'" }' )
 endf
 
