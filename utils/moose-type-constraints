@@ -1,12 +1,34 @@
 #!/usr/bin/env perl
-use PPI;
+use strict;
+use feature ':5.10';
+use warnings;
 
-my $d = PPI::Document->new('/opt/local/lib/perl5/site_perl/5.10.1/Moose/Util/TypeConstraints.pm');
-my $sts = $d->find( sub { 
-        $_[1]->isa('PPI::Statement') and $_[1]->child(0)->content eq 'subtype'
-});
+BEGIN {
+    eval { require PPI };
+    die "PPI perl module is not installed on your system!" if $@;
+}
+
+# getting perlapi.pod absolute path
+my $filepath;
+for my $path (@INC) {
+    $filepath = "$path/Moose/Util/TypeConstraints.pm"
+        if -e "$path/Moose/Util/TypeConstraints.pm";
+}
+
+# error: not found
+die "'TypeConstraints.pm' class is not found on your system!"
+    unless $filepath;
 
 
-my @types = map { $_->child(2)->literal } @$sts;
-print join ' ' , @types , "\n";
+# parse perl file
+my $document = PPI::Document->new($filepath);
+my $sts      = $document->find(
+    sub {
+        $_[1]->isa('PPI::Statement')
+            and $_[1]->child(0)->content eq 'subtype';
+    }
+);
+
+my @types = map { $_->child(2)->literal } @$sts if $sts;
+say join ' ', @types if $sts;
 
