@@ -1015,10 +1015,10 @@ cal s:rule({
     \'context'   :  '^$',
     \'comp'      :  function('s:CompModuleInstallExport') })
 
-cal s:rule(  {
-    \'context': '^\(requires\|build_requires\|test_requires\)\s',
-    \'backward': '[a-zA-Z0-9:]*$',
-    \'comp': function('s:CompClassName') })
+" cal s:rule(  {
+"     \'context': '^\(requires\|build_requires\|test_requires\)\s',
+"     \'backward': '[a-zA-Z0-9:]*$',
+"     \'comp': function('s:CompClassName') })
 
 " }}}
 " UNDERSCORES =================================="{{{
@@ -1110,19 +1110,19 @@ cal s:rule({
 "     use base qw(ClassName ...
 "     use base 'ClassName
 
-cal s:rule({
-    \'only':1,
-    \'context': '\<\(new\|use\)\s\+\(\(base\|parent\)\s\+\(qw\)\?[''"(/]\)\?$' ,
-    \'backward': '\<[A-Z][A-Za-z0-9_:]*$',
-    \'comp': function('s:CompClassName') } )
-
-
-cal s:rule({
-    \'only':1,
-    \'context': '^extends\s\+[''"]$' ,
-    \'backward': '\<\u[A-Za-z0-9_:]*$',
-    \'comp': function('s:CompClassName') } )
-
+" cal s:rule({
+"     \'only':1,
+"     \'context': '\<\(new\|use\)\s\+\(\(base\|parent\)\s\+\(qw\)\?[''"(/]\)\?$' ,
+"     \'backward': '\<[A-Z][A-Za-z0-9_:]*$',
+"     \'comp': function('s:CompClassName') } )
+"
+"
+" cal s:rule({
+"     \'only':1,
+"     \'context': '^extends\s\+[''"]$' ,
+"     \'backward': '\<\u[A-Za-z0-9_:]*$',
+"     \'comp': function('s:CompClassName') } )
+"
 cal s:rule({
     \'context': '^\s*\(sub\|method\)\s\+'              ,
     \'backward': '\<\w\+$' ,
@@ -1163,10 +1163,10 @@ cal s:rule({
 
 
 " function completion
-cal s:rule({
-    \'context': '\(->\|\$\)\@<!$',
-    \'backward': '\<\w\+$' ,
-    \'comp': function('s:CompFunction') })
+" cal s:rule({
+"     \'context': '\(->\|\$\)\@<!$',
+"     \'backward': '\<\w\+$' ,
+"     \'comp': function('s:CompFunction') })
 
 cal s:rule({'context': '\$\(self\|class\)->$'  ,
     \'backward': '\<\w\+$' ,

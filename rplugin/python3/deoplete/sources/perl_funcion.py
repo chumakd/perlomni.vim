@@ -16,34 +16,10 @@ class Source(Base):
         self.name = ('PerlClass', )
         self.mark = '[O]'
         self.rules = [
-#" class name completion
-# "  matches:
-# "     new [ClassName]
-# "     use [ClassName]
-# "     use base qw(ClassName ...
-# "     use base 'ClassName
-                 {'context': re.compile('^use lib [\w:]*$'),
-                 'backward': re.compile('([\w:]+)$'),
-                 'comp': self.CompClassName},
-                 {'context': re.compile('^\s*(?:requires|build_requires|test_requires)\s'),
-                 'backward': re.compile('([\w:]*)$'),
-                 'comp': self.CompClassName},
-                 {'context': re.compile('(?:new|use)\s+[\w:]*$'),
-                 'backward': re.compile('([\w:]*)$'),
-                  'comp': self.CompClassName},
-                 {'context': re.compile('(?:new|use)\sbase\sqw\([\w:]*$'),
-                 'backward': re.compile('([\w:]*)$'),
-                  'comp': self.CompClassName},
-                 {'context': re.compile('(?:new|use)\sbase\s[\'"][\w:]$'),
-                 'backward': re.compile('([\w:]*)$'),
-                  'comp': self.CompClassName},
-
-                 #generic class:: match
-                 {'context': re.compile('[\w\d]+::[\w\d]*$'),
-                 'backward': re.compile('([\w:]*)$'),
-                  'comp': self.CompClassName},
-
                  #function completion
+                 {'context': re.compile('^\s(?:sub|method)\s+\w*'),
+                 'backward': re.compile('\w*'),
+                 'comp':self.CompCurrentBaseFunction,}
                  {'context': re.compile('[\s^]\w+'),
                  'backward': re.compile('([\w:]+)$'),
                   'comp': self.CompFunction},
@@ -67,58 +43,6 @@ class Source(Base):
 ##############################
 # Completion classes
 ##############################
-
-    def CompClassName(self, base):  # ,context):
-
-        # cache = GetCacheNS('class',base)
-        # if type(cache) != type(0)
-        #     return cache
-        # endif
-
-        # " XXX: prevent waiting too long
-
-        if len(base) == 0:
-            return []
-
-        cache_file = '/home/eash/.vim-cpan-module-cache'
-
-    # TODO create cache_file
-
-        result = []
-
-        # search file for cache
-
-        fh = open(cache_file, 'r')
-        for line in fh:
-            if base in line:
-                result.append(line.rstrip())
-
-                # print line.rstrip()
-
-    #     cal extend(classnames, s:scanClass('lib'))
-
-        # look for all modules in lib subdirectory
-
-        pattern = '*.pm'
-        for (root, dirs, files) in os.walk('lib'):
-            for name in files:
-                if fnmatch.fnmatch(name, pattern):
-                    name = os.path.join(root, name)
-                    name = name[4:-3]  # remove lib/, #.pm
-                    name = string.replace(name, 'perl5/', '')
-                    name = string.replace(name, '/', '::')
-
-                    # name=string.replace(name,'.pm','') # remove .pm
-
-                    result.append(name)
-
-        # filter
-        # resultlist=[]
-        # for func in result:
-        #     if func.startswith(base)
-        #         resultlist.append(func)
-
-        return result
 
 
 
