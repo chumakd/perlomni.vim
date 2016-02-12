@@ -33,6 +33,14 @@ class Source(Perl_base):
                 'backward': '[\S]*$',
                 'comp': self.CompMooseIsa,
             },
+            {
+                'only':1,
+                'head': '^has\s+\w+' ,
+                'context': '^\s*$' ,
+                'backward': '\w*$',
+                'comp': self.CompMooseAttribute,
+            },
+
         ]
 
 
@@ -157,7 +165,6 @@ class Source(Perl_base):
         # DEOPLETE Filters so we don't have to
         result = self.StringFilter(classnames, base)
         return result
-    # return self.SetCacheNS('class', base, result)
 
     #"returns the line number of the first line in a group of lines
     def parseParagraphHead(self, fromLine):
@@ -173,9 +180,24 @@ class Source(Perl_base):
 
     def CompMooseIsa(self, base, context):
         comps = ['Int', 'Str', 'HashRef', 'HashRef[', 'Num', 'ArrayRef']
-        # let base = substitute(a:base,'^[''"]','','')
-        comps += self.CompClassName(base, context)
+        #TODO
+        # comps += self.CompClassName(base, context)
         ret = []
         for i in comps:
             ret.append("'"+i+"'")
+        return ret
+
+
+
+    def CompMooseAttribute(self,base,context):
+        values = [ 'default' , 'is' , 'isa' ,
+                     'label' , 'predicate', 'metaclass', 'label',
+                     'expires_after',
+                     'refresh_with' , 'required' , 'coerce' , 'does' , 'required',
+                     'weak_ref' , 'lazy' , 'auto_deref' , 'trigger',
+                     'handles' , 'traits' , 'builder' , 'clearer',
+                     'predicate' , 'lazy_build', 'initializer', 'documentation' ]
+        ret = []
+        for i in values:
+            ret.append(i+' => ')
         return ret
