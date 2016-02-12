@@ -26,13 +26,13 @@ class Source(Perl_base):
                 'backward': '[\'"]?\w*$',
                 'comp': ["'ro'", "'rw'", "'wo'"],
             },
-            # {
-            #     'only': 1,
-            #     'head': '^has\s+\w+',
-            #     'context': '\s+(isa|does)\s*=>\s*$',
-            #     'backward': '[\S]*$',
-            #     'comp': self.CompMooseIsa,
-            # },
+            {
+                'only': 1,
+                'head': '^has\s+\w+',
+                'context': '\s+(isa|does)\s*=>\s*$',
+                'backward': '[\S]*$',
+                'comp': self.CompMooseIsa,
+            },
         ]
 
 
@@ -177,5 +177,5 @@ class Source(Perl_base):
         comps += self.CompClassName(base, context)
         ret = []
         for i in comps:
-            ret.append("'"i+"'")
-        return comps
+            ret.append("'"+i+"'")
+        return ret
