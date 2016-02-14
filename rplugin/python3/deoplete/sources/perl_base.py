@@ -75,7 +75,7 @@ class Perl_base(object):
             # " let b:lines   =
             context = line
 
-            lcontext=context
+            lcontext = context[0:lcolpos]
             # lcontext = context[:-1]
             # let b:lcontext = strpart(getline('.'),0,col('.')-1)
 

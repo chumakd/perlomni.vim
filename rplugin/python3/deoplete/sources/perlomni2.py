@@ -4,6 +4,7 @@ import deoplete.util
 import time
 import os
 import re
+import subprocess
 # import types
 
 
@@ -19,47 +20,47 @@ class Source(Perl_base):
                 # 'context': '^\s*my\s+\$self',
                 # 'backward': '\s*=\s\+shift;',
                 # 'comp': [' = shift;']},
-            # {
-            #     'only': 1,
-            #     'head': '^has\s+\w+',
-            #     'context': '\s+is\s*=>\s*$',
-            #     'backward': '[\'"]?\w*$',
-            #     'comp': ["'ro'", "'rw'", "'wo'"],
-            # },
-            # {
-            #     'only': 1,
-            #     'head': '^has\s+\w+',
-            #     'context': '\s+(isa|does)\s*=>\s*$',
-            #     'backward': '[\S]*$',
-            #     'comp': self.CompMooseIsa,
-            # },
-            # {
-            #     'only': 1,
-            #     'head': '^has\s+\w+',
-            #     'context': '^\s*$',
-            #     'backward': '\w*$',
-            #     'comp': self.CompMooseAttribute,
-            # },
-            # {
-            #     'only': 1,
-            #     'head': '^with\s+',
-            #     'context': '^\s*-$',
-            #     'backward': '\w+$',
-            #     'comp': ['alias', 'excludes'],
-            # },
-            # { # not needed as keywrod completion should take care of this
-            #     'context': '^\s*$',
-            #     'backward': '\w+$',
-            #     'comp': [
-            #         'extends' , 'after' , 'before', 'has' ,
-            #         'requires' , 'with' , 'override' , 'method',
-            #         'super', 'around', 'inner', 'augment', 'confess' , 'blessed' ]
-            #
-            # },
+            {
+                'only': 1,
+                'head': '^has\s+\w+',
+                'context': '\s+is\s*=>\s*$',
+                'backward': '[\'"]?\w*$',
+                'comp': ["'ro'", "'rw'", "'wo'"],
+            },
+            {
+                'only': 1,
+                'head': '^has\s+\w+',
+                'context': '\s+(isa|does)\s*=>\s*$',
+                'backward': '[\S]*$',
+                'comp': self.CompMooseIsa,
+            },
+            {
+                'only': 1,
+                'head': '^has\s+\w+',
+                'context': '^\s*$',
+                'backward': '\w*$',
+                'comp': self.CompMooseAttribute,
+            },
+            {
+                'only': 1,
+                'head': '^with\s+',
+                'context': '^\s*-$',
+                'backward': '\w+$',
+                'comp': ['alias', 'excludes'],
+            },
+            { # not needed as keywrod completion should take care of this
+                'context': '^\s*$',
+                'backward': '\w+$',
+                'comp': [
+                    'extends' , 'after' , 'before', 'has' ,
+                    'requires' , 'with' , 'override' , 'method',
+                    'super', 'around', 'inner', 'augment', 'confess' , 'blessed' ]
+
+            },
             {
                 'only': 1,
                 'context': '^use\s+[a-zA-Z0-9:]+\s+qw',
-                'backward': '\w*$',
+                'backward': '\w+$',
                 'comp': self.CompExportFunction,
             },
             # {
@@ -90,7 +91,6 @@ class Source(Perl_base):
         # self.debug(type(values).__name__)
         # self.debug("size" + str(len(values)))
         # self.debug(type(values[0]).__name__)
-        self.debug('GATHER')
         self.debug('Candidates:'+str(values))
         if isinstance(
             values,
@@ -188,7 +188,6 @@ class Source(Perl_base):
     def scanModuleExportFunctions(self, mClass):
         cache = self.GetCacheNS('mef', mClass)
         if cache is not None:
-            self.debug('no cache')
             return cache
         funcs = []
 
@@ -202,9 +201,12 @@ class Source(Perl_base):
                 mClass +
                 '::EXPORT')
             funcs = output.split()
-        return self.SetCacheNS(
-            'mef', mClass, self.toCompHashList(
-                funcs, mClass))
+            self.debug("funcs:"+str(funcs))
+        return self.SetCacheNS('mef',mClass,funcs)
+        #TODO tocomphashlist doesn't look right
+        # return self.SetCacheNS(
+            # 'mef', mClass, self.toCompHashList(
+                # funcs, mClass))
 
     def CompClassName(self, base, context):
         self.debug('In CompClassName')
@@ -266,9 +268,10 @@ class Source(Perl_base):
     def CompExportFunction(self, base, context):
         # mod_pattern = '[a-zA-Z][a-zA-Z0-9:]\+'
         m = re.match('^use\s+(.*)\s+', context)
-        funcs = self.toCompHashList(
-            self.scanModuleExportFunctions(
-                m.group(0)), m.group(0))
+        funcs=self.scanModuleExportFunctions(m.group(1))
+        # funcs = self.toCompHashList(
+        #     self.scanModuleExportFunctions(
+        #         m.group(1)), m.group(1))
         return funcs
 
     def CompCurrentBaseFunction(self, base, context):
@@ -280,9 +283,10 @@ class Source(Perl_base):
         return funcs
 
     # TODO
-    def runPerlEval(self, Mclass, string):
+    def runPerlEval(self, mtext, code):
         self.debug('runPerlEval TODO')
-        return
+        #TODO use perl_exec variable
+        return subprocess.check_output(['perl','-M'+mtext,"-e",code]).decode()
 
     #" util function for building completion hashlist
     def toCompHashList(self, mList, menu):
