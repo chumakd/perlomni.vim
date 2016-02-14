@@ -1,6 +1,6 @@
 # min pattern length 1
 from .perl_base import Perl_base
-# import deoplete.util
+import deoplete.util
 import time
 import os
 import re
@@ -19,35 +19,35 @@ class Source(Perl_base):
                 # 'context': '^\s*my\s+\$self',
                 # 'backward': '\s*=\s\+shift;',
                 # 'comp': [' = shift;']},
-            {
-                'only': 1,
-                'head': '^has\s+\w+',
-                'context': '\s+is\s*=>\s*$',
-                'backward': '[\'"]?\w*$',
-                'comp': ["'ro'", "'rw'", "'wo'"],
-            },
-            {
-                'only': 1,
-                'head': '^has\s+\w+',
-                'context': '\s+(isa|does)\s*=>\s*$',
-                'backward': '[\S]*$',
-                'comp': self.CompMooseIsa,
-            },
-            {
-                'only': 1,
-                'head': '^has\s+\w+',
-                'context': '^\s*$',
-                'backward': '\w*$',
-                'comp': self.CompMooseAttribute,
-            },
-            {
-                'only': 1,
-                'head': '^with\s+',
-                'context': '^\s*-$',
-                'backward': '\w+$',
-                'comp': ['alias', 'excludes'],
-            },
             # {
+            #     'only': 1,
+            #     'head': '^has\s+\w+',
+            #     'context': '\s+is\s*=>\s*$',
+            #     'backward': '[\'"]?\w*$',
+            #     'comp': ["'ro'", "'rw'", "'wo'"],
+            # },
+            # {
+            #     'only': 1,
+            #     'head': '^has\s+\w+',
+            #     'context': '\s+(isa|does)\s*=>\s*$',
+            #     'backward': '[\S]*$',
+            #     'comp': self.CompMooseIsa,
+            # },
+            # {
+            #     'only': 1,
+            #     'head': '^has\s+\w+',
+            #     'context': '^\s*$',
+            #     'backward': '\w*$',
+            #     'comp': self.CompMooseAttribute,
+            # },
+            # {
+            #     'only': 1,
+            #     'head': '^with\s+',
+            #     'context': '^\s*-$',
+            #     'backward': '\w+$',
+            #     'comp': ['alias', 'excludes'],
+            # },
+            # { # not needed as keywrod completion should take care of this
             #     'context': '^\s*$',
             #     'backward': '\w+$',
             #     'comp': [
@@ -56,12 +56,12 @@ class Source(Perl_base):
             #         'super', 'around', 'inner', 'augment', 'confess' , 'blessed' ]
             #
             # },
-            # {
-            #     'only': 1,
-            #     'context': '^use\s+[a-zA-Z0-9:]+\s+qw',
-            #     'backward': '\w*$',
-            #     'comp': self.CompExportFunction,
-            # },
+            {
+                'only': 1,
+                'context': '^use\s+[a-zA-Z0-9:]+\s+qw',
+                'backward': '\w*$',
+                'comp': self.CompExportFunction,
+            },
             # {
             #     'only': 1,
             #     # TODO fix <,word boundary
@@ -121,14 +121,18 @@ class Source(Perl_base):
             last_ts = self._last_cache_ts
 
         # TODO error - unsupported operand
-        if time.localtime - last_ts > expiry:
-            if key in self._cache_expiry:
-                self._cache_last[key] = time.localtime
-            else:
-                self._last_cache_ts = time.localtime()
-                return
 
-        if self.vim.eval('echo g:perlomni_use_cache || 1') == 1:
+        # self.debug(time.clock)
+        # self.debug(last_ts())
+        # self.debug(expiry)
+        if time.clock() - last_ts > expiry:
+            if key in self._cache_expiry:
+                self._cache_last[key] = time.clock()
+            else:
+                self._last_cache_ts = time.clock()
+                return
+        if (deoplete.util.get_simple_buffer_config(self.vim,'g:perlomni_use_cache' , 'g:perlomni_use_cache')):
+        # if self.vim.eval('echo g:perlomni_use_cache || 1') == 1:
             return
 
         if key in self._cache[key]:
@@ -139,7 +143,7 @@ class Source(Perl_base):
         key = ns + '_' + cache_key
         self._cache[key] = value
         self._cache_expiry[key] = exp
-        self._cache_last[key] = time.localtime
+        self._cache_last[key] = time.clock()
         return value
 
     def SetCacheNS(self, ns, cache_key, value):
@@ -184,6 +188,7 @@ class Source(Perl_base):
     def scanModuleExportFunctions(self, mClass):
         cache = self.GetCacheNS('mef', mClass)
         if cache is not None:
+            self.debug('no cache')
             return cache
         funcs = []
 
@@ -259,8 +264,8 @@ class Source(Perl_base):
         return ret
 
     def CompExportFunction(self, base, context):
-        mod_pattern = '[a-zA-Z][a-zA-Z0-9:]\+'
-        m = re.match('\(^use\s\+\)\@<=' + mod_pattern, context)
+        # mod_pattern = '[a-zA-Z][a-zA-Z0-9:]\+'
+        m = re.match('^use\s+(.*)\s+', context)
         funcs = self.toCompHashList(
             self.scanModuleExportFunctions(
                 m.group(0)), m.group(0))
@@ -276,6 +281,7 @@ class Source(Perl_base):
 
     # TODO
     def runPerlEval(self, Mclass, string):
+        self.debug('runPerlEval TODO')
         return
 
     #" util function for building completion hashlist

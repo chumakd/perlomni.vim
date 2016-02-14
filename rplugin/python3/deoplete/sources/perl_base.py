@@ -35,13 +35,14 @@ class Perl_base(object):
     def __init__(self, vim):
         Base.__init__(self, vim)
         self.filetypes = ['perl']
-        self._last_cache_ts = time.localtime
+        self._last_cache_ts = time.clock()
         self._cache_expiry = {}
         self._cache_last = {}
         self._cache = {}  # g:perlomni_cache
         self._cpan_mod_cache = []  # lists of classnames for completion
         self._comps = []
         self._perlomni_cache_expiry = 30  # default value
+        deoplete.util.set_default(self.vim,'g:perlomni_use_cache',1)
 
 
     def get_complete_position(self, context):
