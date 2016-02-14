@@ -1,5 +1,5 @@
 from .base import Base
-# import deoplete.util
+import deoplete.util
 import time
 import os
 import re
@@ -55,7 +55,6 @@ class Source(Base):
     def get_complete_position(self, context):
         # todo remove
         loc = self.PerlComplete(1)
-        self.debug("location"+str(loc))
         return loc
 
     def gather_candidates(self, context):

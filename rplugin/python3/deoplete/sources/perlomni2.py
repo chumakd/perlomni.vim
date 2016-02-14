@@ -5,6 +5,7 @@ import time
 import os
 import re
 import subprocess
+import urllib
 # import types
 
 
@@ -63,15 +64,16 @@ class Source(Perl_base):
                 'backward': '\w+$',
                 'comp': self.CompExportFunction,
             },
-            # {
-            #     'only': 1,
-            #     # TODO fix <,word boundary
-            #     # 'context': '\<\(new\|use\)\s\+\(\(base\|parent\)\s\+\(qw\)\?[''"(/]\)\?$' ,
-            #     # 'backward': '\<[A-Z][A-Za-z0-9_:]*$',
-            #     'context': '\b(new|use)\s+(base|parent)\s+(qw)?[\'"\(/])?$',
-            #     'backward': '\b\w[\w\d_:]*$',
-            #     'comp': self.CompClassName,
-            # },
+            {
+                'only': 1,
+                # TODO fix <,word boundary
+                # 'context': '\<(new\|use\)\s\+\(\(base\|parent\)\s\+\(qw\)\?[''"(/]\)\?$' ,
+                # 'backward': '\<[A-Z][A-Za-z0-9_:]*$',
+                'context': '^\s*(new|use)\s+(base|parent)\s+(qw.|[\'"])',
+                'backward': '\w[\w\d_:]*$',
+                'comp': self.CompClassName,
+
+            },
             # {
             #     'only': 1,
             #     'context': '^\s*extends\s+[\'"]$',
@@ -155,12 +157,51 @@ class Source(Perl_base):
 # com! PerlOmniCacheClear  :unlet g:perlomni_cache
 
     def CPANSourceLists(self):
-        # todo do in python
-        return self.vim.eval('call CPANSpanSourceLists')
+        self.debug('in cpansourcelists')
+        paths = [
+            os.path.expanduser('~/.cpanm/sources/02packages.details.txt.gz'),
+            os.path.expanduser('~/.cpanplus/02packages.details.txt.gz'),
+            os.path.expanduser('~/.cpan/sources/modules/02packages.details.txt.gz')
+            ]
+        if self.vim.eval('exists(\'g:cpan_user_defined_sources\')'):
+            paths+=deoplete.util.get_simple_buffer_config(self.vim,'g:cpan_user_defined_sources', 'g:cpan_user_defined_sources')
 
-    # TODO
-    def CPANParseSourceList(self, file):
-        return self.vim.eval('call CPANParseSourceList '+file)
+        for f in paths:
+            if os.path.isfile(f):
+                return f
+#TODO HERE I AM
+        #" not found
+        # echo "CPAN source list not found."
+        f = '~/.cpan/sources/modules/02packages.details.txt.gz'
+
+        if not os.path.isdir(os.path.expanduser('~/.cpan/sources/modules') ):
+            os.mkdirs( os.path.expanduser('~/.cpan/sources/modules') )
+            urllib.urlretrieve('http://cpan.nctu.edu.tw/modules/02packages.details.txt.gz',f)
+            return f
+
+        # echo "Downloading CPAN source list."
+
+        return
+
+    def CPANParseSourceList(self,sourcefile):
+        cpan_mod_cachef=os.path.expanduser('~/.vim-cpan-module-cache')
+        result = []
+        if not os.path.isfile(cpan_mod_cachef) or (os.path.getmtime(cpan_mod_cachef) < os.path.getmtime(sourcefile)):
+            with open(sourcefile, 'r') as fh:
+                for line in fh:
+                    #TODO make sure split split works
+                    (module, rest)=line.decode.split('\s',2)
+                    result.append(module)
+
+            with open(cpan_mod_cachef) as fh:
+                for module in result:
+                   fh.write(module+"\n")
+        else:
+            with open(cpan_mod_cachef) as fh:
+                for line in fh:
+                    result.append(line.rstrip())
+        return result
+
 
     # return list of all perl modules in a path
     def scanClass(self, path):
@@ -170,19 +211,19 @@ class Source(Perl_base):
 
             return cache
 
-        # TODO
-        if not os.direxists(path):
+        if not os.path.isdir(path):
             return []
 
         for root, dirs, files in os.walk(path, topdown=True, followlinks=True):
             for name in files:
                 if name.endswith('.pm'):
-                    root = root[:len(path)]  # remove initial lib
-                    if root.startswith('/', beg=0):  # remove starting /
-                        root = root[1:]
-                        root.replace('/', '::')
-                        lib.append(root+name)
-                        return self.SetCacheNS('classpath', path, files)
+                    name = os.path.join(root, name)
+                    name = name[4:-3]  # remove lib/, #.pm
+                    name = string.replace(name, 'perl5/', '')
+                    name = string.replace(name, '/', '::')
+                    lib.append(name)
+
+        return self.SetCacheNS('classpath', path, files)
 
     #" scan exported functions from a module.
     def scanModuleExportFunctions(self, mClass):
@@ -209,28 +250,28 @@ class Source(Perl_base):
                 # funcs, mClass))
 
     def CompClassName(self, base, context):
-        self.debug('In CompClassName')
-        # cache = self.GetCacheNS('class', base) # caching not needed
-        # if type(cache) is list:
-        # return cache
+        cache = self.GetCacheNS('class',self.vim.eval('getcwd()'))
+        if not cache is None:
+            return cache
 
         classnames = []
         if len(base) == 0:
             return []
 
-        if len(self._cpan_mod_cache) == 0:
+        if len(self._cpan_mod_cache) != 0:
             classnames = self._cpan_mod_cache
+            self.debug('mod cache exists')
         else:
             sourcefile = self.CPANSourceLists()
             classnames = self.CPANParseSourceList(sourcefile)
             self._cpan_mod_cache = classnames
 
         # TODO figure out how to load different libs depending on buffer
-        classnames.append(self.scanClass('lib'))
+        classnames+self.scanClass('lib')
 
         # DEOPLETE Filters so we don't have to
-        result = self.StringFilter(classnames, base)
-        return result
+        # result = self.StringFilter(classnames, base)
+        return self.SetCacheNS('class',self.vim.eval('getcwd()'),classnames)
 
     #"returns the line number of the first line in a group of lines
     def parseParagraphHead(self, fromLine):
