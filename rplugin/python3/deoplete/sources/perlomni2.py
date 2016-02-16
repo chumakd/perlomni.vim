@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import urllib
+import string
 # import types
 
 
@@ -49,9 +50,9 @@ class Source(Perl_base):
                 'backward': '\w+$',
                 'comp': ['alias', 'excludes'],
             },
-            {  # not needed as keywrod completion should take care of this
+            {  # not needed as keyword completion should take care of this
                 'context': '^\s*$',
-                'backward': '\w+$',
+                'backward': '\w*$',
                 'comp': [
                     'extends', 'after', 'before', 'has',
                     'requires', 'with', 'override', 'method',
@@ -97,6 +98,12 @@ class Source(Perl_base):
                 'context': '%',
                 'backward': '\w+$',
                 'comp': self.CompHashVariable,
+            },
+            {
+                'only': 1,
+                'context': '@',
+                'backward': '\w+$',
+                'comp': self.CompArrayVariable,
             },
             ]
 
@@ -439,6 +446,13 @@ class Source(Perl_base):
             return cache
         result = self.scanHashVariable()
         return self.SetCacheNS('hashvar','hashvar',result)
+
+    def CompArrayVariable(self,base,context):
+        cache = self.GetCacheNS('arrayvar',base)
+        if cache is not None:
+            return cache
+        result = self.scanArrayVariable()
+        return self.SetCacheNS('arrayvar','arrayvar',result)
 
 
     def scanArrayVariable(self):
