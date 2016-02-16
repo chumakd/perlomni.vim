@@ -88,11 +88,16 @@ class Source(Perl_base):
             # },
             {
                 'only': 1,
-                'context': '\s*\$$',
+                'context': '\s*\$',
                 'backward': '\w+$',
                 'comp': self.CompVariable,
             },
-
+            {
+                'only': 1,
+                'context': '%',
+                'backward': '\w+$',
+                'comp': self.CompHashVariable,
+            },
             ]
 
     def gather_candidates(self, context):
@@ -407,7 +412,7 @@ class Source(Perl_base):
     def grepBuffer(self, pattern):
         ret = {}
         for line in self.vim.current.buffer[1:]:
-            for match in re.findall('\$(\w+)', line):
+            for match in re.findall(pattern, line):
                 ret[match] = 1
         if len(ret) == 0:
             return []
@@ -428,6 +433,14 @@ class Source(Perl_base):
         variables += self.scanHashVariable()
         return self.SetCacheNS('variables', 'variable', variables)
 
+    def CompHashVariable(self,base,context):
+        cache = self.GetCacheNS('hashvar','hashvar')
+        if cache is not None:
+            return cache
+        result = self.scanHashVariable()
+        return self.SetCacheNS('hashvar','hashvar',result)
+
+
     def scanArrayVariable(self):
         ret=self.grepBuffer('@(\w+)')
         return ret
@@ -437,5 +450,5 @@ class Source(Perl_base):
         return ret
 
     def scanHashVariable(self):
-        ret= self.grepBuffer('%(\w+)')
+        ret= self.grepBuffer('\%(\w+)')
         return ret
