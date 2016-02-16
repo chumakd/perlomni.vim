@@ -49,13 +49,13 @@ class Source(Perl_base):
                 'backward': '\w+$',
                 'comp': ['alias', 'excludes'],
             },
-            { # not needed as keywrod completion should take care of this
+            {  # not needed as keywrod completion should take care of this
                 'context': '^\s*$',
                 'backward': '\w+$',
                 'comp': [
-                    'extends' , 'after' , 'before', 'has' ,
-                    'requires' , 'with' , 'override' , 'method',
-                    'super', 'around', 'inner', 'augment', 'confess' , 'blessed' ]
+                    'extends', 'after', 'before', 'has',
+                    'requires', 'with', 'override', 'method',
+                    'super', 'around', 'inner', 'augment', 'confess', 'blessed']
 
             },
             {
@@ -74,18 +74,25 @@ class Source(Perl_base):
                 'comp': self.CompClassName,
 
             },
-            # {
-            #     'only': 1,
-            #     'context': '^\s*extends\s+[\'"]$',
-            #     'backward': '[\w\d_:]+$',
-            #     'comp': self.CompClassName,
-            # },
-            # {
+             {
+                 'only': 1,
+                 'context': '^\s*extends\s+[\'"]',
+                 'backward': '[\w\d_:]+$',
+                 'comp': self.CompClassName,
+             },
+            # {  #TODO Potentailly remove, why complete function when it is already defined
             #     'only': 1,
             #     'context': '^\s*(sub|method)\s+',
             #     'backward': '\w+$',
             #     'comp': self.CompCurrentBaseFunction,
             # },
+            {
+                'only': 1,
+                'context': '\s*\$$',
+                'backward': '\w+$',
+                'comp': self.CompVariable,
+            },
+
             ]
 
     def gather_candidates(self, context):
@@ -133,8 +140,9 @@ class Source(Perl_base):
             else:
                 self._last_cache_ts = time.clock()
                 return
-        if (deoplete.util.get_simple_buffer_config(self.vim,'g:perlomni_use_cache' , 'g:perlomni_use_cache')):
-        # if self.vim.eval('echo g:perlomni_use_cache || 1') == 1:
+        if (deoplete.util.get_simple_buffer_config(
+                self.vim, 'g:perlomni_use_cache', 'g:perlomni_use_cache')):
+            # if self.vim.eval('echo g:perlomni_use_cache || 1') == 1:
             return
 
         if key in self._cache[key]:
@@ -161,47 +169,49 @@ class Source(Perl_base):
         paths = [
             os.path.expanduser('~/.cpanm/sources/02packages.details.txt.gz'),
             os.path.expanduser('~/.cpanplus/02packages.details.txt.gz'),
-            os.path.expanduser('~/.cpan/sources/modules/02packages.details.txt.gz')
-            ]
+            os.path.expanduser('~/.cpan/sources/modules/02packages.details.txt.gz')]
         if self.vim.eval('exists(\'g:cpan_user_defined_sources\')'):
-            paths+=deoplete.util.get_simple_buffer_config(self.vim,'g:cpan_user_defined_sources', 'g:cpan_user_defined_sources')
+            paths += deoplete.util.get_simple_buffer_config(
+                self.vim, 'g:cpan_user_defined_sources',
+                'g:cpan_user_defined_sources')
 
         for f in paths:
             if os.path.isfile(f):
                 return f
-#TODO HERE I AM
+# TODO HERE I AM
         #" not found
         # echo "CPAN source list not found."
         f = '~/.cpan/sources/modules/02packages.details.txt.gz'
 
-        if not os.path.isdir(os.path.expanduser('~/.cpan/sources/modules') ):
-            os.mkdirs( os.path.expanduser('~/.cpan/sources/modules') )
-            urllib.urlretrieve('http://cpan.nctu.edu.tw/modules/02packages.details.txt.gz',f)
+        if not os.path.isdir(os.path.expanduser('~/.cpan/sources/modules')):
+            os.mkdirs(os.path.expanduser('~/.cpan/sources/modules'))
+            urllib.urlretrieve(
+                'http://cpan.nctu.edu.tw/modules/02packages.details.txt.gz', f)
             return f
 
         # echo "Downloading CPAN source list."
 
         return
 
-    def CPANParseSourceList(self,sourcefile):
-        cpan_mod_cachef=os.path.expanduser('~/.vim-cpan-module-cache')
+    def CPANParseSourceList(self, sourcefile):
+        cpan_mod_cachef = os.path.expanduser('~/.vim-cpan-module-cache')
         result = []
-        if not os.path.isfile(cpan_mod_cachef) or (os.path.getmtime(cpan_mod_cachef) < os.path.getmtime(sourcefile)):
+        if not os.path.isfile(cpan_mod_cachef) or (
+                os.path.getmtime(cpan_mod_cachef) < os.path.getmtime(sourcefile)):
             with open(sourcefile, 'r') as fh:
                 for line in fh:
-                    #TODO make sure split split works
-                    (module, rest)=line.decode.split('\s',2)
+                    # TODO make sure split split works
+                    (module, rest) = line.decode.split('\s', 2)
                     result.append(module)
 
             with open(cpan_mod_cachef) as fh:
                 for module in result:
-                   fh.write(module+"\n")
+                    fh.write(module+"\n")
         else:
             with open(cpan_mod_cachef) as fh:
                 for line in fh:
                     result.append(line.rstrip())
         return result
-
 
     # return list of all perl modules in a path
     def scanClass(self, path):
@@ -243,14 +253,14 @@ class Source(Perl_base):
                 '::EXPORT')
             funcs = output.split()
             self.debug("funcs:"+str(funcs))
-        return self.SetCacheNS('mef',mClass,funcs)
-        #TODO tocomphashlist doesn't look right
+        return self.SetCacheNS('mef', mClass, funcs)
+        # TODO tocomphashlist doesn't look right
         # return self.SetCacheNS(
-            # 'mef', mClass, self.toCompHashList(
-                # funcs, mClass))
+        # 'mef', mClass, self.toCompHashList(
+        # funcs, mClass))
 
     def CompClassName(self, base, context):
-        cache = self.GetCacheNS('class',self.vim.eval('getcwd()'))
+        cache = self.GetCacheNS('class', self.vim.eval('getcwd()'))
         if not cache is None:
             return cache
 
@@ -271,7 +281,7 @@ class Source(Perl_base):
 
         # DEOPLETE Filters so we don't have to
         # result = self.StringFilter(classnames, base)
-        return self.SetCacheNS('class',self.vim.eval('getcwd()'),classnames)
+        return self.SetCacheNS('class', self.vim.eval('getcwd()'), classnames)
 
     #"returns the line number of the first line in a group of lines
     def parseParagraphHead(self, fromLine):
@@ -309,7 +319,7 @@ class Source(Perl_base):
     def CompExportFunction(self, base, context):
         # mod_pattern = '[a-zA-Z][a-zA-Z0-9:]\+'
         m = re.match('^use\s+(.*)\s+', context)
-        funcs=self.scanModuleExportFunctions(m.group(1))
+        funcs = self.scanModuleExportFunctions(m.group(1))
         # funcs = self.toCompHashList(
         #     self.scanModuleExportFunctions(
         #         m.group(1)), m.group(1))
@@ -326,8 +336,9 @@ class Source(Perl_base):
     # TODO
     def runPerlEval(self, mtext, code):
         self.debug('runPerlEval TODO')
-        #TODO use perl_exec variable
-        return subprocess.check_output(['perl','-M'+mtext,"-e",code]).decode()
+        # TODO use perl_exec variable
+        return subprocess.check_output(
+            ['perl', '-M'+mtext, "-e", code]).decode()
 
     #" util function for building completion hashlist
     def toCompHashList(self, mList, menu):
@@ -376,3 +387,55 @@ class Source(Perl_base):
             if os.path.isfile(path + '/' + filepath):
                 return self.SetCacheNS('clsfpath', mClass, path+'/' + filepath)
         return
+
+    def scanFunctionFromSingleClassFile(self, mfile):
+        return self.grepFile('^\s*(?:sub|has|option)\s+(\w+)', mfile)
+
+    def scanFunctionFromList(self):
+        return self.grepBuffer('^\s*(?:sub|has|option)\s+(\w+)')
+
+    def grepFile(self, pattern, mfile):
+        ret = {}
+        for line in open.readlines(mfile):
+            for match in re.findall('\$(\w+)', line):
+                ret[match] = 1
+        if len(ret) == 0:
+            return []
+        else:
+            return list(ret)
+
+    def grepBuffer(self, pattern):
+        ret = {}
+        for line in self.vim.current.buffer[1:]:
+            for match in re.findall('\$(\w+)', line):
+                ret[match] = 1
+        if len(ret) == 0:
+            return []
+        else:
+            return list(ret)
+
+    def CompVariable(self, base, context):
+        # TODO need to look at caching timeout
+        cache = self.GetCacheNS('variables', 'variable')
+        if cache is not None:
+            return cache
+
+        variables = []
+        # TODO find way to only look in function if inside of a function
+        variables = self.scanVariable()
+        self.debug("variable:"+str(variables))
+        variables += self.scanArrayVariable()
+        variables += self.scanHashVariable()
+        return self.SetCacheNS('variables', 'variable', variables)
+
+    def scanArrayVariable(self):
+        ret=self.grepBuffer('@(\w+)')
+        return ret
+
+    def scanVariable(self):
+        ret= self.grepBuffer('\$(\w+)')
+        return ret
+
+    def scanHashVariable(self):
+        ret= self.grepBuffer('%(\w+)')
+        return ret
