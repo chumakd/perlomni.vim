@@ -91,14 +91,16 @@ class Perl_base(object):
                 match = re.search(rule['backward'], lcontext)
                 if match:
                     bwidx = match.start()
+                    self.debug('backwards match for bellow')
                 else:
+                    bwidx=-1
                     # if backward regexp matched is empty, check if context regexp
                     # is matched ? if yes, set bwidx to length, if not , set to
                     # -1
-                    if re.match(rule['context'], lcontext):
-                        bwidx = len(lcontext)
-                    else:
-                        bwidx = -1
+                    # if re.match(rule['context'], lcontext):
+                    #     bwidx = len(lcontext)
+                    # else:
+                    #     bwidx = -1
 
                 # see if there is first matched index
                 if first_bwidx != -1 and first_bwidx != bwidx:
