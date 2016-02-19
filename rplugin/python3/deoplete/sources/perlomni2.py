@@ -18,10 +18,10 @@ class Source(Perl_base):
         self.mark = '[Py2]'
         self.min_pattern_length = 0
         self._rules = [
-               # {'only': 1,  #TODO does not work, will not complete due to filter
-                # 'context': '^\s*my\s+\$self',
-                # 'backward': '\s*=\s\+shift;',
-                # 'comp': [' = shift;']},
+            # {'only': 1,  #TODO does not work, will not complete due to filter
+            # 'context': '^\s*my\s+\$self',
+            # 'backward': '\s*=\s\+shift;',
+            # 'comp': [' = shift;']},
             {
                 'only': 1,
                 'head': '^has\s+\w+',
@@ -52,7 +52,7 @@ class Source(Perl_base):
             },
             {  # not needed as keyword completion should take care of this
                 'context': '^\s*$',
-                'backward': '\w*$',
+                'backward': '\w+$',
                 'comp': [
                     'extends', 'after', 'before', 'has',
                     'requires', 'with', 'override', 'method',
@@ -67,20 +67,17 @@ class Source(Perl_base):
             },
             {
                 'only': 1,
-                # TODO fix <,word boundary
-                # 'context': '\<(new\|use\)\s\+\(\(base\|parent\)\s\+\(qw\)\?[''"(/]\)\?$' ,
-                # 'backward': '\<[A-Z][A-Za-z0-9_:]*$',
                 'context': '^\s*(new|use)\s+(base|parent)\s+(qw.|[\'"])',
                 'backward': '\w[\w\d_:]*$',
                 'comp': self.CompClassName,
 
             },
-             {
-                 'only': 1,
-                 'context': '^\s*extends\s+[\'"]',
-                 'backward': '[\w\d_:]+$',
-                 'comp': self.CompClassName,
-             },
+            {
+                'only': 1,
+                'context': '^\s*extends\s+[\'"]',
+                'backward': '[\w\d_:]+$',
+                'comp': self.CompClassName,
+                },
             # {  #TODO Potentailly remove, why complete function when it is already defined
             #     'only': 1,
             #     'context': '^\s*(sub|method)\s+',
@@ -104,6 +101,12 @@ class Source(Perl_base):
                 'context': '@',
                 'backward': '\w+$',
                 'comp': self.CompArrayVariable,
+            },
+            {
+                'only': 1,
+                'context': '&$',
+                'backward': '\w+$',
+                'comp': self.CompBufferFunction,
             },
             ]
 
@@ -137,15 +140,9 @@ class Source(Perl_base):
             expiry = self._cache_expiry[key]
             last_ts = self._cache_last[key]
         else:
-            # todo
             expiry = self._perlomni_cache_expiry
             last_ts = self._last_cache_ts
 
-        # TODO error - unsupported operand
-
-        # self.debug(time.clock)
-        # self.debug(last_ts())
-        # self.debug(expiry)
         if time.clock() - last_ts > expiry:
             if key in self._cache_expiry:
                 self._cache_last[key] = time.clock()
@@ -181,7 +178,8 @@ class Source(Perl_base):
         paths = [
             os.path.expanduser('~/.cpanm/sources/02packages.details.txt.gz'),
             os.path.expanduser('~/.cpanplus/02packages.details.txt.gz'),
-            os.path.expanduser('~/.cpan/sources/modules/02packages.details.txt.gz')]
+            os.path.expanduser(
+                '~/.cpan/sources/modules/02packages.details.txt.gz')]
         if self.vim.eval('exists(\'g:cpan_user_defined_sources\')'):
             paths += deoplete.util.get_simple_buffer_config(
                 self.vim, 'g:cpan_user_defined_sources',
@@ -190,7 +188,6 @@ class Source(Perl_base):
         for f in paths:
             if os.path.isfile(f):
                 return f
-# TODO HERE I AM
         #" not found
         # echo "CPAN source list not found."
         f = '~/.cpan/sources/modules/02packages.details.txt.gz'
@@ -345,7 +342,6 @@ class Source(Perl_base):
             funcs += sublist
         return funcs
 
-    # TODO
     def runPerlEval(self, mtext, code):
         self.debug('runPerlEval TODO')
         # TODO use perl_exec variable
@@ -354,8 +350,6 @@ class Source(Perl_base):
 
     #" util function for building completion hashlist
     def toCompHashList(self, mList, menu):
-        # return map( a:list , '{ "word": v:val , "menu": "'. a:menu .'" }' )
-        # TODO verify this works
         return [{'word': val, 'menu': menu} for val in mList]
 
     def findCurrentClassBaseClass(self):
@@ -440,29 +434,46 @@ class Source(Perl_base):
         variables += self.scanHashVariable()
         return self.SetCacheNS('variables', 'variable', variables)
 
-    def CompHashVariable(self,base,context):
-        cache = self.GetCacheNS('hashvar','hashvar')
+    def CompHashVariable(self, base, context):
+        cache = self.GetCacheNS('hashvar', 'hashvar')
         if cache is not None:
             return cache
         result = self.scanHashVariable()
-        return self.SetCacheNS('hashvar','hashvar',result)
+        return self.SetCacheNS('hashvar', 'hashvar', result)
 
-    def CompArrayVariable(self,base,context):
-        cache = self.GetCacheNS('arrayvar',base)
+    def CompArrayVariable(self, base, context):
+        cache = self.GetCacheNS('arrayvar', base)
         if cache is not None:
             return cache
         result = self.scanArrayVariable()
-        return self.SetCacheNS('arrayvar','arrayvar',result)
+        return self.SetCacheNS('arrayvar', 'arrayvar', result)
 
+    def CompBufferFunction(self, base, context):
+        # cache = self.GetCacheNS('buf_func',self.vim.current.buffer.name())
+        # if cache is not None:
+        #     return cache
+        cache = self.GetCacheNS('buf_func_all', self.vim.current.buffer.name)
+        if cache is not None:
+            return cache
+        else:
+            funclist = self.SetCacheNS(
+                'buf_func_all',
+                self.vim.current.buffer.name,
+                self.scanFunctionFromList())
+            return funclist
+
+        # result = filter( copy(funclist),"stridx(v:val,'".a:base."') == 0 && v:val != '".a:base."'" )
+        # return
+        # self.SetCacheNS('buf_func',self.vim.current.buffer.name(),result)
 
     def scanArrayVariable(self):
-        ret=self.grepBuffer('@(\w+)')
+        ret = self.grepBuffer('@(\w+)')
         return ret
 
     def scanVariable(self):
-        ret= self.grepBuffer('\$(\w+)')
+        ret = self.grepBuffer('\$(\w+)')
         return ret
 
     def scanHashVariable(self):
-        ret= self.grepBuffer('\%(\w+)')
+        ret = self.grepBuffer('\%(\w+)')
         return ret
