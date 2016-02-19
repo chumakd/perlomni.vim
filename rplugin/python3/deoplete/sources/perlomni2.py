@@ -7,6 +7,8 @@ import re
 import subprocess
 import urllib
 import string
+import functools
+import operator
 # import types
 
 
@@ -84,10 +86,24 @@ class Source(Perl_base):
             #     'backward': '\w+$',
             #     'comp': self.CompCurrentBaseFunction,
             # },
+
+            # TODO add functions with triggers, builders, etc, add roles functions
+            {
+                'context': '\$(?:self|class)->',
+                'backward': '\w*$',
+                'only': 1,
+                'comp': self.CompBufferFunction,
+            },
+            {
+                'context': '__PACKAGE__->$',
+                'backward': '\w*$',
+                'only': 1,
+                'comp': self.CompBufferFunction,
+            },
             {
                 'only': 1,
                 'context': '\s*\$',
-                'backward': '\w+$',
+                'backward': '[A-Za-z:\d]+$',
                 'comp': self.CompVariable,
             },
             {
@@ -108,6 +124,10 @@ class Source(Perl_base):
                 'backward': '\w+$',
                 'comp': self.CompBufferFunction,
             },
+            {
+                'context': '$\w+->$',
+                'backward': '\w*$',
+                'comp': self.CompObjectMethod},
             ]
 
     def gather_candidates(self, context):
@@ -466,6 +486,34 @@ class Source(Perl_base):
         # return
         # self.SetCacheNS('buf_func',self.vim.current.buffer.name(),result)
 
+    def CompObjectMethod(self, base, context):
+        # objvarname = matchstr(a:context,'$w\+\(->$\)\@=')
+        match = re.match('^\$(\w+)', context)
+        objvarname = match.group(1)
+        # TODO think of better caching
+        # cache = self.GetCacheNS('objectMethod',objvarname)
+        # if cache is not None:
+        #     return cache
+
+        classes = []
+        # try to get what the package the variable is
+        # " Scan from current buffer
+        # " echo 'scan from current buffer' | sleep 100ms
+        # TODO see if can make more python access of object
+        objvarMapping = self.vim.current.buffer.vars.get('objvarMapping')
+        if objvarMapping is not None or 'objvarname' not in objvarMapping:
+            # TODO search for method/function that we are in, and us e that as
+            # lines
+            lines = self.vim.current.buffer[10:]
+            classes = self.scanObjectVariableLines(lines, objvarname)
+
+        funclist = []
+        for cls in classes:
+            funclist += self.scanFunctionFromClass(cls)
+            # TODO think of better caching
+            #funclist = SetCacheNS('objectMethod',objvarname,funclist)
+        return funclist
+
     def scanArrayVariable(self):
         ret = self.grepBuffer('@(\w+)')
         return ret
@@ -477,3 +525,10 @@ class Source(Perl_base):
     def scanHashVariable(self):
         ret = self.grepBuffer('\%(\w+)')
         return ret
+
+    # look for Method that an object is
+    def scanObjectVariableLines(self, lines, method):
+        p = re.compile('([\w:\d_])+->'+method)
+        return list(set(functools.reduce(operator.add, [
+            p.findall(x) for x in lines
+        ])))
