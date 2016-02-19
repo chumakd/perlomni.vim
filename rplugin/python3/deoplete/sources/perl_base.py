@@ -119,28 +119,28 @@ class Perl_base(object):
                 self.debug('function:' + str(rule['comp']))
                 self.debug('head:' + paragraph_head)
                 self.debug('lefttext:' + lefttext)
-                self.debug('regexp:' + rule['context'])
+                self.debug('context:' + rule['context'])
                 self.debug('basetext:' + basetext)
 
                 # if ( has_key( rule ,'head')
                 #         \ && b:paragraph_head =~ rule.head
                 #         \ && lefttext =~ rule.context )
                 #     \ || ( ! has_key(rule,'head') && lefttext =~ rule.context)
-                if re.match(rule['context'], lefttext):
+                if re.search(rule['context'], lefttext):
                     self.debug('context match')
                 else:
                     self.debug('context does not match')
-                if (('head' in rule and re.match(rule['head'], paragraph_head) and re.match(rule[
+                if (('head' in rule and re.search(rule['head'], paragraph_head) and re.search(rule[
                     'context'], lefttext))
                     or (not ('head' in rule)
-                        and re.match(rule['context'], lefttext))):
+                        and re.search(rule['context'], lefttext))):
 
                     if 'contains' in rule:
                         # text = rule['contains']
                         found = 0
                         # check content
                         for line in lines:
-                            if re.match(rule['contains'], line):
+                            if re.search(rule['contains'], line):
                                 found = 1
                                 self.debug('found contains')
                                 break
