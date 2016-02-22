@@ -7,8 +7,8 @@ import re
 import subprocess
 import urllib
 import string
-import functools
-import operator
+# import functools
+# import operator
 # import types
 
 
@@ -102,6 +102,12 @@ class Source(Perl_base):
             },
             {
                 'only': 1,
+                'context': '\$\w+->$',
+                'backward': '\w*$',
+                'comp': self.CompObjectMethod
+            },
+            {
+                'only': 1,
                 'context': '\s*\$',
                 'backward': '[A-Za-z:\d]+$',
                 'comp': self.CompVariable,
@@ -124,10 +130,9 @@ class Source(Perl_base):
                 'backward': '\w+$',
                 'comp': self.CompBufferFunction,
             },
-            {
-                'context': '$\w+->$',
-                'backward': '\w*$',
-                'comp': self.CompObjectMethod},
+
+
+
             ]
 
     def gather_candidates(self, context):
@@ -281,7 +286,7 @@ class Source(Perl_base):
                 mClass +
                 '::EXPORT')
             funcs = output.split()
-            self.debug("funcs:"+str(funcs))
+            self.debug("export funcs:"+str(funcs))
         return self.SetCacheNS('mef', mClass, funcs)
         # TODO tocomphashlist doesn't look right
         # return self.SetCacheNS(
@@ -363,8 +368,6 @@ class Source(Perl_base):
         return funcs
 
     def runPerlEval(self, mtext, code):
-        self.debug('runPerlEval TODO')
-        # TODO use perl_exec variable
         return subprocess.check_output(
             ['perl', '-M'+mtext, "-e", code]).decode()
 
@@ -389,10 +392,12 @@ class Source(Perl_base):
 
     def scanFunctionFromClass(self, mClass):
         classfile = self.locateClassFile(mClass)
+        self.debug('classfile: '+classfile)
         if classfile is None:
             return []
-        return self.scanFunctionFromSingleClassFile(
-            classfile) + self.scanFunctionFromBaseClassFile(classfile)
+        # return self.scanFunctionFromSingleClassFile(
+            # classfile) + self.scanFunctionFromBaseClassFile(classfile)
+        return self.scanFunctionFromBaseClassFile(classfile)
 
     def locateClassFile(self, mClass):
         cache = self.GetCacheNS('clsfpath', mClass)
@@ -400,14 +405,12 @@ class Source(Perl_base):
             return cache
 
         paths = self.vim.options['path'].split(',')
-        # TODO
-        # if g:perlomni_use_perlinc || &filetype != 'perl'
-        # TODO
-        # paths = split( s:system(g:perlomni_perl, '-e', 'print join(",",@INC)')
-        # ,',')
         filepath = mClass+'.pm'
         filepath.replace('/', '::')
 
+        output = str(
+            subprocess.check_output(['perl', '-e', 'print join(",",@INC)']))
+        paths += output.split(',')
         paths += 'lib'
         for path in paths:
             if os.path.isfile(path + '/' + filepath):
@@ -417,14 +420,38 @@ class Source(Perl_base):
     def scanFunctionFromSingleClassFile(self, mfile):
         return self.grepFile('^\s*(?:sub|has|option)\s+(\w+)', mfile)
 
+    def scanFunctionFromBaseClassFile(self, file):
+        if os.path.isfile(file) == False:
+            return []
+
+        funcs = self.scanFunctionFromSingleClassFile(file)
+        # self.debug('funcs: '+str(funcs))
+        classes = self.baseClassFromFile(file)
+        self.debug('##classes: '+str(classes))
+        # TODO check for Roles
+        for cls in classes:
+            cache = self.GetCacheNS('classfile_funcs', cls)
+            if cache is not None:
+                funcs += cache
+                continue
+
+            clsfile = self.locateClassFile(cls)
+            if clsfile is not None:
+                self.debug('clsfile: '+clsfile)
+                bfuncs = self.scanFunctionFromBaseClassFile(clsfile)
+                self.SetCacheNS('classfile_funcs', cls, bfuncs)
+                funcs += bfuncs
+        return funcs
+
     def scanFunctionFromList(self):
         return self.grepBuffer('^\s*(?:sub|has|option)\s+(\w+)')
 
     def grepFile(self, pattern, mfile):
         ret = {}
-        for line in open.readlines(mfile):
-            for match in re.findall('\$(\w+)', line):
-                ret[match] = 1
+        with open(mfile) as f:
+            for line in f:
+                for match in re.findall(pattern, line):
+                    ret[match] = 1
         if len(ret) == 0:
             return []
         else:
@@ -449,7 +476,7 @@ class Source(Perl_base):
         variables = []
         # TODO find way to only look in function if inside of a function
         variables = self.scanVariable()
-        self.debug("variable:"+str(variables))
+        # self.debug("variable:"+str(variables))
         variables += self.scanArrayVariable()
         variables += self.scanHashVariable()
         return self.SetCacheNS('variables', 'variable', variables)
@@ -488,7 +515,7 @@ class Source(Perl_base):
 
     def CompObjectMethod(self, base, context):
         # objvarname = matchstr(a:context,'$w\+\(->$\)\@=')
-        match = re.match('^\$(\w+)', context)
+        match = re.search('\$(\w+)', context)
         objvarname = match.group(1)
         # TODO think of better caching
         # cache = self.GetCacheNS('objectMethod',objvarname)
@@ -500,12 +527,13 @@ class Source(Perl_base):
         # " Scan from current buffer
         # " echo 'scan from current buffer' | sleep 100ms
         # TODO see if can make more python access of object
-        objvarMapping = self.vim.current.buffer.vars.get('objvarMapping')
-        if objvarMapping is not None or 'objvarname' not in objvarMapping:
-            # TODO search for method/function that we are in, and us e that as
-            # lines
-            lines = self.vim.current.buffer[10:]
-            classes = self.scanObjectVariableLines(lines, objvarname)
+        # objvarMapping = self.vim.current.buffer.vars.get('objvarMapping')
+        (lnum, lcolpos) = self.vim.current.window.cursor
+        start = lnum-10
+        if start < 1:
+            start = 1
+        lines = self.vim.current.buffer[start:lnum]
+        classes = self.scanObjectVariableLines(lines, objvarname)
 
         funclist = []
         for cls in classes:
@@ -527,8 +555,27 @@ class Source(Perl_base):
         return ret
 
     # look for Method that an object is
-    def scanObjectVariableLines(self, lines, method):
-        p = re.compile('([\w:\d_])+->'+method)
-        return list(set(functools.reduce(operator.add, [
-            p.findall(x) for x in lines
-        ])))
+    def scanObjectVariableLines(self, lines, variable):
+        p = re.compile(variable+'\s*=\s*([\w:\d_]+)->new')
+        list = []
+        for line in lines:
+            match = p.search(line)
+            if match:
+                list.append(match.group(1))
+        return list
+
+    def baseClassFromFile(self, file):
+        cache = self.GetCacheNS('clsf_bcls', file)
+        self.debug('Getting base class from '+file)
+        if cache is not None:
+            return cache
+        # list = split(s:system(s:vimbin.'grep-pattern.pl', a:file,
+            # \ '^(?:use\s+(?:base|parent)\s+|extends\s+)(.*);'),"\n")
+        list = self.grepFile('^(?:use\s+(?:base|parent)\s+|extends\s+)(.*);',file)
+        classes = []
+        for i in range(0, len(list)-1):
+            list[i] = re.sub('^\(qw[(''"\[]|(|[''"])\s*', '', list[i],)
+            list[i] = re.sub('[)''"]$', '', list[i])
+            list[i] = re.sub('[,''"]', ' ', list[i],)
+            classes += list[i].split('\s+')
+        return self.SetCacheNS('clsf_bcls', file, classes)
