@@ -79,7 +79,14 @@ class Source(Perl_base):
                 'context': '^\s*extends\s+[\'"]',
                 'backward': '[\w\d_:]+$',
                 'comp': self.CompClassName,
-                },
+            },
+            {
+                'context': '$' ,
+                'backward': '\b[a-zA-Z0-9:]+$',
+                'comp': self.CompClassName,
+            },
+
+
             # {  #TODO Potentailly remove, why complete function when it is already defined
             #     'only': 1,
             #     'context': '^\s*(sub|method)\s+',
@@ -93,6 +100,28 @@ class Source(Perl_base):
                 'backward': '\w*$',
                 'only': 1,
                 'comp': self.CompBufferFunction,
+            },
+            {
+                'context': '^__PACKAGE__->$',
+                'contains': 'DBIx::Class::Core',
+                'backward': '\w*$',
+                'only':1,
+                'comp':    [
+                    "table" , "table_class" , "add_columns" ,
+                    "set_primary_key" , "has_many" ,
+                    "many_to_many" , "belongs_to" , "add_columns" ,
+                    "might_have" ,
+                    "has_one",
+                    "add_unique_constraint",
+                    "resultset_class",
+                    "load_namespaces",
+                    "load_components",
+                    "load_classes",
+                    "resultset_attributes" ,
+                    "result_source_instance" ,
+                    "mk_group_accessors",
+                    "storage",
+                ],
             },
             {
                 'context': '__PACKAGE__->$',
@@ -130,7 +159,12 @@ class Source(Perl_base):
                 'backward': '\w+$',
                 'comp': self.CompBufferFunction,
             },
-
+            {
+                'only': 1,
+                'context': '->resultset\(\s*[\'"]',
+                'backward': '\w*$',
+                'comp':  self.scanDBIxResultClasses,
+            },
 
 
             ]
@@ -579,3 +613,19 @@ class Source(Perl_base):
             list[i] = re.sub('[,''"]', ' ', list[i],)
             classes += list[i].split('\s+')
         return self.SetCacheNS('clsf_bcls', file, classes)
+
+    def scanDBIxResultClasses(self):
+        path = 'lib'
+        cache = self.GetCacheNS('dbix_c',path)
+        if cache is not None:
+            return cache
+        lib=[]
+        for root, dirs, files in os.walk(path, topdown=True, followlinks=True):
+            for name in files:
+                if name.endswith('.pm') and 'Result' in root:
+                    name = os.path.join(root, name)
+                    name = name[4:-3]  # remove lib/, #.pm
+                    name = string.replace(name, '/', '::')
+                    lib.append(name)
+
+        return SetCacheNS('dbix_c',path,lib)
