@@ -165,8 +165,26 @@ class Source(Perl_base):
                 'backward': '\w*$',
                 'comp':  self.scanDBIxResultClasses,
             },
-
-
+            {
+                'context': '\b[a-zA-Z0-9:]\+->$'  ,
+                'backward': '\w*$' ,
+                'comp': self.CompClassFunction,
+            },
+            {
+                'only':1,
+                'context': '^=$',
+                'backward': '\w*$',
+                'comp': [ 'head1' , 'head2' , 'head3' , 'begin' , 'end',
+                         'encoding' , 'cut' , 'pod' , 'over' ,
+                         'item' , 'for' , 'back' ],
+            },
+            {
+                'only':1,
+                'context': '^=\w\+\s' ,
+                'backward': '\w*$',
+                'comp': [ 'NAME' , 'SYNOPSIS' , 'AUTHOR' , 'DESCRIPTION' , 'FUNCTIONS' ,
+                         'USAGE' , 'OPTIONS' , 'BUG REPORT' , 'DEVELOPMENT' , 'NOTES' , 'ABOUT' , 'REFERENCES' ],
+            },
             ]
 
     def gather_candidates(self, context):
@@ -619,13 +637,30 @@ class Source(Perl_base):
         cache = self.GetCacheNS('dbix_c',path)
         if cache is not None:
             return cache
-        lib=[]
+        results=[]
         for root, dirs, files in os.walk(path, topdown=True, followlinks=True):
             for name in files:
-                if name.endswith('.pm') and 'Result' in root:
+                if name.endswith('.pm'):
                     name = os.path.join(root, name)
-                    name = name[4:-3]  # remove lib/, #.pm
-                    name = string.replace(name, '/', '::')
-                    lib.append(name)
+                    results+=self.grepFile('package .*::Result::([\w:\d]*)\b')
+        return SetCacheNS('dbix_c',path,results)
 
-        return SetCacheNS('dbix_c',path,lib)
+
+    def CompClassFunction(self,base,context):
+        p=re.compile('^([\w:\d]*)->')
+        package=p.match(context)
+        cache = self.GetCacheNS('classfunc',package)
+        if cache is not None:
+            return cache
+
+        cache2 = self.GetCacheNS('class_func_all',package)
+        funclist=[]
+        if cache2 is not None:
+            funclist=cache2
+        else:
+            funclist=self.SetCacheNS('class_func_all',package,self.scanFunctionFromClass(package))
+
+        #TODO
+        # if g:perlomni_show_hidden_func == 0
+        #     call filter(funclist, 'v:val !~ "^_"')
+        return funclist
