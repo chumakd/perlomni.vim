@@ -105,7 +105,6 @@ class Source(Base):
             # let b:lcontext = strpart(getline('.'),0,col('.')-1)
 
             # " let b:pcontext
-            # TODO ddefine parseParagraphhead
             paragraph_head = self.parseParagraphHead(lnum)
 
             first_bwidx = -1
@@ -284,8 +283,12 @@ class Source(Base):
     #"returns the line number of the first line in a group of lines
     def parseParagraphHead(self, fromLine):
         lnum = fromLine
+        min_num=lnum-10
+        if min_num <0:
+            min_num=0
         paragraph_head = self.vim.current.buffer[lnum]
         # TODO for
+
         for nr in range(lnum-1, lnum-10, -1):
             line = self.vim.current.buffer[nr]
             if re.match('^\s*$', line) or re.match('^\s*#', line):
