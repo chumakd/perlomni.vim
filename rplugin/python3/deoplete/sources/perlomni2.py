@@ -226,12 +226,13 @@ class Source(Perl_base):
             else:
                 self._last_cache_ts = time.clock()
                 return
-        if (deoplete.util.get_simple_buffer_config(
-                self.vim, 'g:perlomni_use_cache', 'g:perlomni_use_cache')):
-            # if self.vim.eval('echo g:perlomni_use_cache || 1') == 1:
-            return
+            #TODO enable the ability to turn of caching
+        # if (deoplete.util.get_simple_buffer_config(
+                # self.vim, 'b:perlomni_use_cache', 'g:perlomni_use_cache')):
+        #if self.vim.eval('echo g:perlomni_use_cache') == '1':
+            # return
 
-        if key in self._cache[key]:
+        if key in self._cache:
             return self._cache[key]
         return
 
