@@ -1,12 +1,12 @@
 # min pattern length 1
-from .perl_base import Perl_base
-import deoplete.util
 import time
 import os
 import re
 import subprocess
 import urllib
 import string
+from .perl_base import Perl_base
+import deoplete.util
 # import functools
 # import operator
 # import types
@@ -81,7 +81,7 @@ class Source(Perl_base):
                 'comp': self.CompClassName,
             },
             {
-                'context': '$' ,
+                'context': '$',
                 'backward': '\b[a-zA-Z0-9:]+$',
                 'comp': self.CompClassName,
             },
@@ -105,20 +105,20 @@ class Source(Perl_base):
                 'context': '^__PACKAGE__->$',
                 'contains': 'DBIx::Class::Core',
                 'backward': '\w*$',
-                'only':1,
+                'only': 1,
                 'comp':    [
-                    "table" , "table_class" , "add_columns" ,
-                    "set_primary_key" , "has_many" ,
-                    "many_to_many" , "belongs_to" , "add_columns" ,
-                    "might_have" ,
+                    "table", "table_class", "add_columns",
+                    "set_primary_key", "has_many",
+                    "many_to_many", "belongs_to", "add_columns",
+                    "might_have",
                     "has_one",
                     "add_unique_constraint",
                     "resultset_class",
                     "load_namespaces",
                     "load_components",
                     "load_classes",
-                    "resultset_attributes" ,
-                    "result_source_instance" ,
+                    "resultset_attributes",
+                    "result_source_instance",
                     "mk_group_accessors",
                     "storage",
                 ],
@@ -166,24 +166,24 @@ class Source(Perl_base):
                 'comp':  self.scanDBIxResultClasses,
             },
             {
-                'context': '\b[a-zA-Z0-9:]\+->$'  ,
-                'backward': '\w*$' ,
+                'context': '\b[a-zA-Z0-9:]\+->$',
+                'backward': '\w*$',
                 'comp': self.CompClassFunction,
             },
             {
-                'only':1,
+                'only': 1,
                 'context': '^=$',
                 'backward': '\w*$',
-                'comp': [ 'head1' , 'head2' , 'head3' , 'begin' , 'end',
-                         'encoding' , 'cut' , 'pod' , 'over' ,
-                         'item' , 'for' , 'back' ],
+                'comp': ['head1', 'head2', 'head3', 'begin', 'end',
+                         'encoding', 'cut', 'pod', 'over',
+                         'item', 'for', 'back'],
             },
             {
-                'only':1,
-                'context': '^=\w\+\s' ,
+                'only': 1,
+                'context': '^=\w\+\s',
                 'backward': '\w*$',
-                'comp': [ 'NAME' , 'SYNOPSIS' , 'AUTHOR' , 'DESCRIPTION' , 'FUNCTIONS' ,
-                         'USAGE' , 'OPTIONS' , 'BUG REPORT' , 'DEVELOPMENT' , 'NOTES' , 'ABOUT' , 'REFERENCES' ],
+                'comp': ['NAME', 'SYNOPSIS', 'AUTHOR', 'DESCRIPTION', 'FUNCTIONS',
+                         'USAGE', 'OPTIONS', 'BUG REPORT', 'DEVELOPMENT', 'NOTES', 'ABOUT', 'REFERENCES'],
             },
             ]
 
@@ -226,10 +226,10 @@ class Source(Perl_base):
             else:
                 self._last_cache_ts = time.clock()
                 return
-            #TODO enable the ability to turn of caching
+            # TODO enable the ability to turn of caching
         # if (deoplete.util.get_simple_buffer_config(
                 # self.vim, 'b:perlomni_use_cache', 'g:perlomni_use_cache')):
-        #if self.vim.eval('echo g:perlomni_use_cache') == '1':
+        # if self.vim.eval('echo g:perlomni_use_cache') == '1':
             # return
 
         if key in self._cache:
@@ -271,7 +271,7 @@ class Source(Perl_base):
         f = '~/.cpan/sources/modules/02packages.details.txt.gz'
 
         if not os.path.isdir(os.path.expanduser('~/.cpan/sources/modules')):
-            os.mkdirs(os.path.expanduser('~/.cpan/sources/modules'))
+            os.mkdir(os.path.expanduser('~/.cpan/sources/modules'))
             urllib.urlretrieve(
                 'http://cpan.nctu.edu.tw/modules/02packages.details.txt.gz', f)
             return f
@@ -373,8 +373,12 @@ class Source(Perl_base):
     #"returns the line number of the first line in a group of lines
     def parseParagraphHead(self, fromLine):
         lnum = fromLine
-        paragraph_head = self.vim.current.buffer[lnum]
-        for nr in range(lnum-1, lnum-10, -1):
+        self.debug(str(lnum))
+        paragraph_head = ''
+        lmin=lnum-10;
+        if lmin < 1:
+            lmin=1
+        for nr in range(lnum-1, lmin, -1):
             line = self.vim.current.buffer[nr]
             if re.match('^\s*$', line) or re.match('^\s*#', line):
                 break
@@ -520,6 +524,33 @@ class Source(Perl_base):
         else:
             return list(ret)
 
+    def find_predicate(self):
+        ret = []
+        in_block = 0
+        potential = ''
+        for line in self.vim.current.buffer[1:]:
+            # check to see if predicate is in line
+            if not in_block:
+                m = re.search(
+                    '^\s*(?:has|option)\s+(\w+).*predicate\s*=>\s*1',
+                    line)
+                if m:
+                    ret.append('has_'+m.group(1))
+                    next
+            m = re.search('^\s*(?:has|option)\s+(\w+)', line)
+            if m:
+                if re.search('\)\s*;', line):  # check to see if closing
+                    next
+                in_block = 1
+                potential = m.group(1)
+                next
+            if in_block:
+                if re.search('\)\s*;', line):
+                    in_block = 0
+                elif re.search('\bpredicate\s*=>\s*1', line):
+                    ret.append('has_'+potential)
+        return ret
+
     def CompVariable(self, base, context):
         # TODO need to look at caching timeout
         cache = self.GetCacheNS('variables', 'variable')
@@ -559,7 +590,8 @@ class Source(Perl_base):
             funclist = self.SetCacheNS(
                 'buf_func_all',
                 self.vim.current.buffer.name,
-                self.scanFunctionFromList())
+                self.scanFunctionFromList()+self.find_predicate())
+                # self.scanFunctionFromList())
             return funclist
 
         # result = filter( copy(funclist),"stridx(v:val,'".a:base."') == 0 && v:val != '".a:base."'" )
@@ -624,7 +656,9 @@ class Source(Perl_base):
             return cache
         # list = split(s:system(s:vimbin.'grep-pattern.pl', a:file,
             # \ '^(?:use\s+(?:base|parent)\s+|extends\s+)(.*);'),"\n")
-        list = self.grepFile('^(?:use\s+(?:base|parent)\s+|extends\s+)(.*);',file)
+        list = self.grepFile(
+            '^(?:use\s+(?:base|parent)\s+|extends\s+)(.*);',
+            file)
         classes = []
         for i in range(0, len(list)-1):
             list[i] = re.sub('^\(qw[(''"\[]|(|[''"])\s*', '', list[i],)
@@ -635,33 +669,36 @@ class Source(Perl_base):
 
     def scanDBIxResultClasses(self):
         path = 'lib'
-        cache = self.GetCacheNS('dbix_c',path)
+        cache = self.GetCacheNS('dbix_c', path)
         if cache is not None:
             return cache
-        results=[]
+        results = []
         for root, dirs, files in os.walk(path, topdown=True, followlinks=True):
             for name in files:
                 if name.endswith('.pm'):
                     name = os.path.join(root, name)
-                    results+=self.grepFile('package .*::Result::([\w:\d]*)\b')
-        return SetCacheNS('dbix_c',path,results)
+                    results += self.grepFile(
+                        'package .*::Result::([\w:\d]*)\b', name)
+        return self.SetCacheNS('dbix_c', path, results)
 
-
-    def CompClassFunction(self,base,context):
-        p=re.compile('^([\w:\d]*)->')
-        package=p.match(context)
-        cache = self.GetCacheNS('classfunc',package)
+    def CompClassFunction(self, base, context):
+        p = re.compile('^([\w:\d]*)->')
+        package = p.match(context)
+        cache = self.GetCacheNS('classfunc', package)
         if cache is not None:
             return cache
 
-        cache2 = self.GetCacheNS('class_func_all',package)
-        funclist=[]
+        cache2 = self.GetCacheNS('class_func_all', package)
+        funclist = []
         if cache2 is not None:
-            funclist=cache2
+            funclist = cache2
         else:
-            funclist=self.SetCacheNS('class_func_all',package,self.scanFunctionFromClass(package))
+            funclist = self.SetCacheNS(
+                'class_func_all',
+                package,
+                self.scanFunctionFromClass(package))
 
-        #TODO
+        # TODO
         # if g:perlomni_show_hidden_func == 0
         #     call filter(funclist, 'v:val !~ "^_"')
         return funclist
