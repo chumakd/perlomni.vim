@@ -106,6 +106,7 @@ class Source(Base):
 
             # " let b:pcontext
             paragraph_head = self.parseParagraphHead(lnum)
+            self.debug('I am here')
 
             first_bwidx = -1
 
@@ -285,11 +286,10 @@ class Source(Base):
         lnum = fromLine
         min_num=lnum-10
         if min_num <0:
-            min_num=0
-        paragraph_head = self.vim.current.buffer[lnum]
-        # TODO for
+            min_num=1
+        paragraph_head = ''
 
-        for nr in range(lnum-1, lnum-10, -1):
+        for nr in range(lnum-1, min_num, -1):
             line = self.vim.current.buffer[nr]
             if re.match('^\s*$', line) or re.match('^\s*#', line):
                 break
