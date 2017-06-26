@@ -24,10 +24,10 @@
 # ============================================================================
 
 import re
-from abc import abstractmethod
+import time
+#from abc import abstractmethod
 from .base import Base
 import deoplete.util
-import time
 
 
 class Perl_base(object):
@@ -42,17 +42,17 @@ class Perl_base(object):
         self._cpan_mod_cache = []  # lists of classnames for completion
         self._comps = []
         self._perlomni_cache_expiry = 30  # default value
-        deoplete.util.set_default(self.vim,'g:perlomni_use_cache',1)
-
+        deoplete.util.set_default(self.vim, 'g:perlomni_use_cache', 1)
+        debug_enabled = 0
 
     def get_complete_position(self, context):
         # todo remove
         loc = self.PerlComplete(1)
         return loc
 
-
     def debug(self, expr):
-        deoplete.util.debug(self.vim, expr)
+        return
+        #deoplete.util.debug(self.vim, expr)
 
     def PerlComplete(self, findstart):  # , base):
         buffer = self.vim.current.buffer
@@ -82,6 +82,7 @@ class Perl_base(object):
             # " let b:pcontext
             # TODO ddefine parseParagraphhead
             paragraph_head = self.parseParagraphHead(lnum)
+            self.debug("i am here")
 
             first_bwidx = -1
 
@@ -93,7 +94,7 @@ class Perl_base(object):
                     bwidx = match.start()
                     self.debug('backwards match for bellow')
                 else:
-                    bwidx=-1
+                    bwidx = -1
                     # if backward regexp matched is empty, check if context regexp
                     # is matched ? if yes, set bwidx to length, if not , set to
                     # -1
