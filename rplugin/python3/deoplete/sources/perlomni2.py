@@ -17,8 +17,10 @@ class Source(Perl_base):
     def __init__(self, vim):
         Perl_base.__init__(self, vim)
         self.name = 'PerlOmni_py2'
-        self.mark = '[Py2]'
+        self.mark = '[Pl]'
         self.min_pattern_length = 0
+        self.debug_enabled = 1
+        self.rank = 99999
         self._rules = [
             # {'only': 1,  #TODO does not work, will not complete due to filter
             # 'context': '^\s*my\s+\$self',
@@ -189,10 +191,10 @@ class Source(Perl_base):
 
     def gather_candidates(self, context):
         values = self.PerlComplete(0)
+
         # self.debug(type(values).__name__)
         # self.debug("size" + str(len(values)))
         # self.debug(type(values[0]).__name__)
-        self.debug('Candidates:'+str(values))
         if isinstance(
             values,
             list) and len(values) > 0 and isinstance(
@@ -205,8 +207,13 @@ class Source(Perl_base):
                     ret.append({'word': x})
                 else:
                     ret.append(x)
-                    self.debug(ret)
-                    return ret
+
+            self.debug('Candidates:'+str(ret))
+            return ret
+        if values is None:
+            self.debug('Candidates: None')
+        else:
+            self.debug('Candidates:'+str(values))
         return values
 
     def GetCacheNS(self, ns, cache_key):
@@ -237,6 +244,8 @@ class Source(Perl_base):
         return
 
     def SetCacheNSWithExpiry(self, ns, cache_key, value, exp):
+        if value is None:
+            return value
         key = ns + '_' + cache_key
         self._cache[key] = value
         self._cache_expiry[key] = exp
@@ -244,6 +253,8 @@ class Source(Perl_base):
         return value
 
     def SetCacheNS(self, ns, cache_key, value):
+        if value is None:
+            return value
         key = ns + "_" + cache_key
         self._cache[key] = value
         return value
@@ -373,11 +384,10 @@ class Source(Perl_base):
     #"returns the line number of the first line in a group of lines
     def parseParagraphHead(self, fromLine):
         lnum = fromLine
-        self.debug(str(lnum))
         paragraph_head = ''
-        lmin=lnum-10;
+        lmin = lnum-10
         if lmin < 1:
-            lmin=1
+            lmin = 1
         for nr in range(lnum-1, lmin, -1):
             line = self.vim.current.buffer[nr]
             if re.match('^\s*$', line) or re.match('^\s*#', line):
@@ -390,8 +400,12 @@ class Source(Perl_base):
         # TODO
         # comps += self.CompClassName(base, context)
         ret = []
-        for i in comps:
-            ret.append("'"+i+"'")
+        if not self.IsMoo:
+            for i in comps:
+                ret.append("'"+i+"'")
+        else:
+            ret = comps
+        self.debug('isa completion'+str(ret))
         return ret
 
     def CompMooseAttribute(self, base, context):
@@ -448,12 +462,14 @@ class Source(Perl_base):
         return all_mods
 
     def scanFunctionFromClass(self, mClass):
+        if mClass is None:
+            return []
         classfile = self.locateClassFile(mClass)
-        self.debug('classfile: '+classfile)
         if classfile is None:
             return []
+        self.debug('classfile: '+classfile)
         # return self.scanFunctionFromSingleClassFile(
-            # classfile) + self.scanFunctionFromBaseClassFile(classfile)
+        # classfile) + self.scanFunctionFromBaseClassFile(classfile)
         return self.scanFunctionFromBaseClassFile(classfile)
 
     def locateClassFile(self, mClass):
@@ -577,6 +593,8 @@ class Source(Perl_base):
         if cache is not None:
             return cache
         result = self.scanArrayVariable()
+        if result is None:
+            return
         return self.SetCacheNS('arrayvar', 'arrayvar', result)
 
     def CompBufferFunction(self, base, context):
@@ -591,7 +609,7 @@ class Source(Perl_base):
                 'buf_func_all',
                 self.vim.current.buffer.name,
                 self.scanFunctionFromList()+self.find_predicate())
-                # self.scanFunctionFromList())
+            # self.scanFunctionFromList())
             return funclist
 
         # result = filter( copy(funclist),"stridx(v:val,'".a:base."') == 0 && v:val != '".a:base."'" )
@@ -702,3 +720,14 @@ class Source(Perl_base):
         # if g:perlomni_show_hidden_func == 0
         #     call filter(funclist, 'v:val !~ "^_"')
         return funclist
+
+
+# TODO catch
+    def IsMoo(self, base, context):
+        for line in self.vim.current.buffer[1:]:
+            if re.match('^\s*use Moo;', line) is not None:
+                return True
+            if re.match('\^s*use Moose;',line) is not None:
+                return False
+        # default is true
+        return True

@@ -27,10 +27,11 @@ import re
 import time
 #from abc import abstractmethod
 from .base import Base
+from deoplete import logger
 import deoplete.util
 
 
-class Perl_base(object):
+class Perl_base(Base):
 
     def __init__(self, vim):
         Base.__init__(self, vim)
@@ -41,18 +42,17 @@ class Perl_base(object):
         self._cache = {}  # g:perlomni_cache
         self._cpan_mod_cache = []  # lists of classnames for completion
         self._comps = []
+        # self.is_async = 1
         self._perlomni_cache_expiry = 30  # default value
         deoplete.util.set_default(self.vim, 'g:perlomni_use_cache', 1)
-        debug_enabled = 0
+        self.debug_enabled = 1
 
     def get_complete_position(self, context):
         # todo remove
         loc = self.PerlComplete(1)
+        self.debug("Completion_pos:"+str(loc))
         return loc
 
-    def debug(self, expr):
-        return
-        #deoplete.util.debug(self.vim, expr)
 
     def PerlComplete(self, findstart):  # , base):
         buffer = self.vim.current.buffer
@@ -82,7 +82,6 @@ class Perl_base(object):
             # " let b:pcontext
             # TODO ddefine parseParagraphhead
             paragraph_head = self.parseParagraphHead(lnum)
-            self.debug("i am here")
 
             first_bwidx = -1
 
@@ -92,7 +91,6 @@ class Perl_base(object):
                 match = re.search(rule['backward'], lcontext)
                 if match:
                     bwidx = match.start()
-                    self.debug('backwards match for bellow')
                 else:
                     bwidx = -1
                     # if backward regexp matched is empty, check if context regexp
@@ -116,21 +114,21 @@ class Perl_base(object):
                 lefttext = lcontext[0:bwidx]
                 basetext = lcontext[bwidx:]
 
-                self.debug('--------------------')
-                self.debug('function:' + str(rule['comp']))
-                self.debug('head:' + paragraph_head)
-                self.debug('lefttext:' + lefttext)
-                self.debug('context:' + rule['context'])
-                self.debug('basetext:' + basetext)
-
-                # if ( has_key( rule ,'head')
+                               # if ( has_key( rule ,'head')
                 #         \ && b:paragraph_head =~ rule.head
                 #         \ && lefttext =~ rule.context )
                 #     \ || ( ! has_key(rule,'head') && lefttext =~ rule.context)
                 if re.search(rule['context'], lefttext):
+                    self.debug('--------------------')
                     self.debug('context match')
-                else:
-                    self.debug('context does not match')
+                    self.debug('function:' + str(rule['comp']))
+                    self.debug('head:' + paragraph_head)
+                    self.debug('lefttext:' + lefttext)
+                    self.debug('context:' + rule['context'])
+                    self.debug('basetext:' + basetext)
+                    self.debug('--------------------')
+                # else :
+                    # self.debug('context does not match')
                 if (('head' in rule and re.search(rule['head'], paragraph_head) and re.search(rule[
                     'context'], lefttext))
                     or (not ('head' in rule)
@@ -161,8 +159,8 @@ class Perl_base(object):
                     if first_bwidx == -1:
                         first_bwidx = bwidx
 
-                else:
-                    self.debug('does not match')
+                # else:
+                    # self.debug('does not match')
             return first_bwidx
         else:
             return self._comps
