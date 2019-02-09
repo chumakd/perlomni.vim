@@ -1,8 +1,10 @@
 
 # moose complete
+
 has url => (
     metaclass => 'Labeled',
-    is => 'wo'
+    is => 'ro
+    is => 'ro',
     label     => "The site's URL",
     isa => 'AFS::Object',
     reader => 

@@ -21,7 +21,9 @@ nytprof.out
 *.o
 *.bs
 /_eumm/
-
+.ropeproject/
+__pycache__
+*.bk
 
 ### Vim ###
 [._]*.s[a-w][a-z]
@@ -30,4 +32,3 @@ nytprof.out
 Session.vim
 .netrwhist
 *~
-
